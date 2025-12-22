@@ -59,6 +59,7 @@ input {width:100%;padding:10px;border-radius:20px;border:none;margin-bottom:6px}
 <body>
 <div class="header">Mini X</div>
 <div class="container">
+    <a href="/grok" style="color:white;display:block;padding:8px 0;">🤖 Grok</a>
 
 <form method="post">
 <input name="text" maxlength="280" placeholder="무슨 일이 일어나고 있나요?" required>
@@ -141,3 +142,22 @@ def login():
 def logout():
     session.pop("user", None)
     return redirect("/login")
+
+
+@app.route("/grok", methods=["GET", "POST"])
+def grok():
+    answer = ""
+    if request.method == "POST":
+        q = request.form["q"]
+        # 지금은 가짜 Grok (규칙 기반)
+        answer = f"🤖 Grok: '{q}'에 대해 생각해보면… 꽤 흥미로운 질문이네."
+
+    return f"""
+    <h2>🤖 Grok</h2>
+    <form method="post">
+        <input name="q" placeholder="Grok에게 물어보세요" required>
+        <button>질문</button>
+    </form>
+    <p>{answer}</p>
+    <a href="/">← 홈</a>
+    """
