@@ -45,6 +45,7 @@ def home():
 <meta name="description" content="닉네임만 입력하면 바로 사용하는 초간단 SNS Mini X">
 <meta name="keywords" content="Mini X, SNS, 트위터, 미니 트위터, Flask SNS">
 <meta name="robots" content="index, follow">
+<meta name="naver-site-verification" content="835543805cb974328c819829bf7b663b198375d3" />
 <style>
 body {font-family: Arial;background:#000;color:#fff;margin:0}
 .header {padding:15px;font-size:22px;font-weight:bold;border-bottom:1px solid #333}
