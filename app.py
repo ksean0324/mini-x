@@ -182,3 +182,52 @@ def sitemap():
         xml += f"  <url>\n    <loc>https://mini-x-0rn4.onrender.com{u}</loc>\n  </url>\n"
     xml += '</urlset>'
     return xml, 200, {"Content-Type": "application/xml"}
+
+# ---- 알림 기능 ----
+notifications = {}  # { "username": ["알림1", "알림2", ...] }
+
+def add_notification(user, text):
+    if user not in notifications:
+        notifications[user] = []
+    notifications[user].insert(0, text)  # 최신 순으로 추가
+
+@app.route("/notifications")
+def show_notifications():
+    if "user" not in session:
+        return redirect("/login")
+    user = session["user"]
+    user_notifications = notifications.get(user, [])
+    html = "<h2>🔔 알림</h2><ul>"
+    for n in user_notifications:
+        html += f"<li>{n}</li>"
+    html += "</ul><a href='/'>← 홈</a>"
+    # 확인 후 알림 제거
+    notifications[user] = []
+    return html
+
+# 기존 like와 comment 처리 시 알림 추가
+@app.route("/like/<pid>", methods=["POST"])
+def like(pid):
+    for p in posts:
+        if p["id"] == pid:
+            p["likes"] += 1
+            if p["user"] != session["user"]:
+                add_notification(p["user"], f"{session['user']}님이 당신의 글을 좋아합니다 ❤️")
+            break
+    save_posts(posts)
+    return redirect("/")
+
+@app.route("/comment/<pid>", methods=["POST"])
+def comment(pid):
+    text = request.form["comment"]
+    for p in posts:
+        if p["id"] == pid:
+            p["comments"].append({"user": session["user"], "text": text})
+            if p["user"] != session["user"]:
+                add_notification(p["user"], f"{session['user']}님이 당신의 글에 댓글을 남겼습니다: {text}")
+            break
+    save_posts(posts)
+    return redirect("/")
+
+
+
