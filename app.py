@@ -184,3 +184,18 @@ def sitemap():
     xml += '</urlset>'
     return xml, 200, {"Content-Type": "application/xml"}
 
+
+@app.route("/naver_verify.html")
+def naver_verify():
+    return """
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <meta name="naver-site-verification" content="835543805cb974328c819829bf7b663b198375d3" />
+    <title>Site Verification</title>
+    </head>
+    <body>Verification page for NAVER Search Advisor</body>
+    </html>
+    """
+
+
