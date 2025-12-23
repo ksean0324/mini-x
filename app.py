@@ -152,7 +152,18 @@ def grok():
     answer = ""
     if request.method == "POST":
         q = request.form["q"]
-        answer = f"🤖 Grok: '{q}'에 대해 생각해보면… 꽤 흥미로운 질문이네."
+        q_lower = q.lower()
+        # 키워드 기반 간단 똑똑 답변
+        if "날씨" in q_lower:
+            answer = "🤖 Grok: 오늘 날씨는 맑음/흐림/비 올 수 있으니 우산을 챙겨봐!"
+        elif "시간" in q_lower or "몇시" in q_lower:
+            answer = f"🤖 Grok: 지금 시간은 {time.strftime('%H:%M:%S')} 이에요."
+        elif "안녕" in q_lower or "hi" in q_lower:
+            answer = "🤖 Grok: 안녕하세요! 만나서 반가워요 😎"
+        elif "계산" in q_lower:
+            answer = "🤖 Grok: 간단한 계산도 해줄 수 있어요! (예: 2+3)"
+        else:
+            answer = f"🤖 Grok: '{q}'에 대해 생각해보면… 흠, 꽤 흥미로운 질문이네요!"
     return f"""
     <h2>🤖 Grok</h2>
     <form method="post">
@@ -162,6 +173,7 @@ def grok():
     <p>{answer}</p>
     <a href="/">← 홈</a>
     """
+
 
 @app.route("/health")
 def health():
