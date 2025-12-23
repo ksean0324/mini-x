@@ -41,7 +41,10 @@ def home():
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Mini X</title>
+<title>Mini X - 초간단 SNS</title>
+<meta name="description" content="닉네임만 입력하면 바로 사용하는 초간단 SNS Mini X">
+<meta name="keywords" content="Mini X, SNS, 트위터, 미니 트위터, Flask SNS">
+<meta name="robots" content="index, follow">
 <style>
 body {font-family: Arial;background:#000;color:#fff;margin:0}
 .header {padding:15px;font-size:22px;font-weight:bold;border-bottom:1px solid #333}
@@ -143,15 +146,12 @@ def logout():
     session.pop("user", None)
     return redirect("/login")
 
-
 @app.route("/grok", methods=["GET", "POST"])
 def grok():
     answer = ""
     if request.method == "POST":
         q = request.form["q"]
-        # 지금은 가짜 Grok (규칙 기반)
         answer = f"🤖 Grok: '{q}'에 대해 생각해보면… 꽤 흥미로운 질문이네."
-
     return f"""
     <h2>🤖 Grok</h2>
     <form method="post">
@@ -162,8 +162,24 @@ def grok():
     <a href="/">← 홈</a>
     """
 
-
 @app.route("/health")
 def health():
     return "OK", 200
+
+# ---- 검색엔진용 추가 ----
+@app.route("/robots.txt")
+def robots():
+    return """User-agent: *
+Allow: /
+""", 200, {"Content-Type": "text/plain"}
+
+@app.route("/sitemap.xml")
+def sitemap():
+    urls = ["/", "/login", "/grok"]
+    xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    for u in urls:
+        xml += f"  <url>\n    <loc>https://mini-x-0rn4.onrender.com{u}</loc>\n  </url>\n"
+    xml += '</urlset>'
+    return xml, 200, {"Content-Type": "application/xml"}
 
