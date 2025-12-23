@@ -161,3 +161,8 @@ def grok():
     <p>{answer}</p>
     <a href="/">← 홈</a>
     """
+
+
+@app.route("/health")
+def health():
+    return "OK", 200
