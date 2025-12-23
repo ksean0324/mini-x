@@ -184,18 +184,21 @@ def sitemap():
     xml += '</urlset>'
     return xml, 200, {"Content-Type": "application/xml"}
 
-
+# 네이버 소유 확인용 페이지
 @app.route("/naver_verify.html")
 def naver_verify():
     return """
-    <!DOCTYPE html>
-    <html>
-    <head>
-    <meta name="naver-site-verification" content="835543805cb974328c819829bf7b663b198375d3" />
-    <title>Site Verification</title>
-    </head>
-    <body>Verification page for NAVER Search Advisor</body>
-    </html>
-    """
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="naver-site-verification" content="835543805cb974328c819829bf7b663b198375d3" />
+<title>네이버 소유 확인</title>
+</head>
+<body>
+<p>네이버 사이트 소유 확인 페이지입니다.</p>
+</body>
+</html>
+"""
 
 
