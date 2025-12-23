@@ -153,17 +153,35 @@ def grok():
     if request.method == "POST":
         q = request.form["q"]
         q_lower = q.lower()
-        # 키워드 기반 간단 똑똑 답변
-        if "날씨" in q_lower:
+
+        # 사칙연산 처리
+        import re
+        calc_match = re.match(r"^\s*([-+]?\d*\.?\d+)\s*([\+\-\*/])\s*([-+]?\d*\.?\d+)\s*$", q)
+        if calc_match:
+            num1 = float(calc_match.group(1))
+            op = calc_match.group(2)
+            num2 = float(calc_match.group(3))
+            try:
+                if op == '+':
+                    result = num1 + num2
+                elif op == '-':
+                    result = num1 - num2
+                elif op == '*':
+                    result = num1 * num2
+                elif op == '/':
+                    result = num1 / num2
+                answer = f"🤖 Grok: 계산 결과는 {result} 입니다."
+            except Exception as e:
+                answer = f"🤖 Grok: 계산 중 오류가 발생했어요 ({e})"
+        elif "날씨" in q_lower:
             answer = "🤖 Grok: 오늘 날씨는 맑음/흐림/비 올 수 있으니 우산을 챙겨봐!"
         elif "시간" in q_lower or "몇시" in q_lower:
             answer = f"🤖 Grok: 지금 시간은 {time.strftime('%H:%M:%S')} 이에요."
         elif "안녕" in q_lower or "hi" in q_lower:
             answer = "🤖 Grok: 안녕하세요! 만나서 반가워요 😎"
-        elif "계산" in q_lower:
-            answer = "🤖 Grok: 간단한 계산도 해줄 수 있어요! (예: 2+3)"
         else:
             answer = f"🤖 Grok: '{q}'에 대해 생각해보면… 흠, 꽤 흥미로운 질문이네요!"
+
     return f"""
     <h2>🤖 Grok</h2>
     <form method="post">
@@ -173,7 +191,6 @@ def grok():
     <p>{answer}</p>
     <a href="/">← 홈</a>
     """
-
 
 @app.route("/health")
 def health():
