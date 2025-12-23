@@ -20,15 +20,13 @@ posts = load_posts()
 
 @app.route("/", methods=["GET", "POST"])
 def home():
-    if "user" not in session:
-        return redirect("/login")
-
+    # 로그인 체크 제거, 로그인 안 해도 '익명' 사용자로 처리
     if request.method == "POST":
-        text = request.form["text"]
+        text = request.form.get("text", "")
         if text.strip():
             posts.insert(0, {
                 "id": str(time.time()),
-                "user": session["user"],
+                "user": session.get("user", "익명"),
                 "text": text,
                 "likes": 0,
                 "comments": []
@@ -86,7 +84,8 @@ input {width:100%;padding:10px;border-radius:20px;border:none;margin-bottom:6px}
 <button class="comment">💬</button>
 </form>
 """
-        if p["user"] == session["user"]:
+        # 익명이면 삭제 버튼 안 보이게
+        if "user" in session and p["user"] == session["user"]:
             html += f"""
 <form action="/delete/{p['id']}" method="post" style="display:inline">
 <button class="delete">🗑️</button>
@@ -114,10 +113,10 @@ def like(pid):
 
 @app.route("/comment/<pid>", methods=["POST"])
 def comment(pid):
-    text = request.form["comment"]
+    text = request.form.get("comment", "")
     for p in posts:
         if p["id"] == pid:
-            p["comments"].append({"user": session["user"], "text": text})
+            p["comments"].append({"user": session.get("user", "익명"), "text": text})
             break
     save_posts(posts)
     return redirect("/")
@@ -132,7 +131,7 @@ def delete(pid):
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        session["user"] = request.form["name"]
+        session["user"] = request.form.get("name", "익명")
         return redirect("/")
     return '''
     <h2>Mini X 로그인</h2>
@@ -151,7 +150,7 @@ def logout():
 def grok():
     answer = ""
     if request.method == "POST":
-        q = request.form["q"]
+        q = request.form.get("q", "")
         answer = f"🤖 Grok: '{q}'에 대해 생각해보면… 꽤 흥미로운 질문이네."
     return f"""
     <h2>🤖 Grok</h2>
@@ -183,22 +182,3 @@ def sitemap():
         xml += f"  <url>\n    <loc>https://mini-x-0rn4.onrender.com{u}</loc>\n  </url>\n"
     xml += '</urlset>'
     return xml, 200, {"Content-Type": "application/xml"}
-
-# 네이버 소유 확인용 페이지
-@app.route("/naver_verify.html")
-def naver_verify():
-    return """
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<meta name="naver-site-verification" content="835543805cb974328c819829bf7b663b198375d3" />
-<title>네이버 소유 확인</title>
-</head>
-<body>
-<p>네이버 사이트 소유 확인 페이지입니다.</p>
-</body>
-</html>
-"""
-
-
