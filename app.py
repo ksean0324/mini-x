@@ -20,13 +20,15 @@ posts = load_posts()
 
 @app.route("/", methods=["GET", "POST"])
 def home():
-    # 로그인 체크 제거, 로그인 안 해도 '익명' 사용자로 처리
+    if "user" not in session:
+        return redirect("/login")
+
     if request.method == "POST":
-        text = request.form.get("text", "")
+        text = request.form["text"]
         if text.strip():
             posts.insert(0, {
                 "id": str(time.time()),
-                "user": session.get("user", "익명"),
+                "user": session["user"],
                 "text": text,
                 "likes": 0,
                 "comments": []
@@ -84,8 +86,7 @@ input {width:100%;padding:10px;border-radius:20px;border:none;margin-bottom:6px}
 <button class="comment">💬</button>
 </form>
 """
-        # 익명이면 삭제 버튼 안 보이게
-        if "user" in session and p["user"] == session["user"]:
+        if p["user"] == session["user"]:
             html += f"""
 <form action="/delete/{p['id']}" method="post" style="display:inline">
 <button class="delete">🗑️</button>
@@ -113,10 +114,10 @@ def like(pid):
 
 @app.route("/comment/<pid>", methods=["POST"])
 def comment(pid):
-    text = request.form.get("comment", "")
+    text = request.form["comment"]
     for p in posts:
         if p["id"] == pid:
-            p["comments"].append({"user": session.get("user", "익명"), "text": text})
+            p["comments"].append({"user": session["user"], "text": text})
             break
     save_posts(posts)
     return redirect("/")
@@ -131,7 +132,7 @@ def delete(pid):
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        session["user"] = request.form.get("name", "익명")
+        session["user"] = request.form["name"]
         return redirect("/")
     return '''
     <h2>Mini X 로그인</h2>
@@ -150,7 +151,7 @@ def logout():
 def grok():
     answer = ""
     if request.method == "POST":
-        q = request.form.get("q", "")
+        q = request.form["q"]
         answer = f"🤖 Grok: '{q}'에 대해 생각해보면… 꽤 흥미로운 질문이네."
     return f"""
     <h2>🤖 Grok</h2>
@@ -170,8 +171,7 @@ def health():
 @app.route("/robots.txt")
 def robots():
     return """User-agent: *
-Allow: /
-""", 200, {"Content-Type": "text/plain"}
+Allow: /""", 200, {"Content-Type": "text/plain"}
 
 @app.route("/sitemap.xml")
 def sitemap():
