@@ -287,5 +287,8 @@ def comment(pid):
     save_posts(posts)
     return redirect("/")
 
+@app.route("/test403")
+def test403():
+    return "🚫 강제 403 실험 성공 (실서버)", 403
 
 
