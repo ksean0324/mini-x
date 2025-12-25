@@ -260,12 +260,30 @@ def like(pid):
 @app.route("/comment/<pid>", methods=["POST"])
 def comment(pid):
     text = request.form["comment"]
+
+    # 🔥 댓글 욕설 검사
+    if has_bad_word(text):
+        return """
+        <script>
+        alert("욕설이 포함된 댓글은 작성할 수 없습니다.");
+        history.back();
+        </script>
+        """
+
     for p in posts:
         if p["id"] == pid:
-            p["comments"].append({"user": session["user"], "text": text})
+            p["comments"].append({
+                "user": session["user"],
+                "text": text
+            })
+
             if p["user"] != session["user"]:
-                add_notification(p["user"], f"{session['user']}님이 당신의 글에 댓글을 남겼습니다: {text}")
+                add_notification(
+                    p["user"],
+                    f"{session['user']}님이 당신의 글에 댓글을 남겼습니다: {text}"
+                )
             break
+
     save_posts(posts)
     return redirect("/")
 
