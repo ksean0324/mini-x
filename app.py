@@ -103,24 +103,6 @@ input {width:100%;padding:10px;border-radius:20px;border:none;margin-bottom:6px}
     html += "</div></body></html>"
     return html
 
-@app.route("/like/<pid>", methods=["POST"])
-def like(pid):
-    for p in posts:
-        if p["id"] == pid:
-            p["likes"] += 1
-            break
-    save_posts(posts)
-    return redirect("/")
-
-@app.route("/comment/<pid>", methods=["POST"])
-def comment(pid):
-    text = request.form["comment"]
-    for p in posts:
-        if p["id"] == pid:
-            p["comments"].append({"user": session["user"], "text": text})
-            break
-    save_posts(posts)
-    return redirect("/")
 
 @app.route("/delete/<pid>", methods=["POST"])
 def delete(pid):
