@@ -287,14 +287,26 @@ def comment(pid):
     save_posts(posts)
     return redirect("/")
 
-@app.route("/test403")
-def test403():
-    return "🚫 강제 403 실험 성공 (실서버)", 403
-
-@app.route("/test-202")
-def test_202():
-    return "⏳ 요청은 받았어요. 처리 중입니다.", 202
 
 
+
+
+
+@app.route("/status/<int:code>")
+def status_test(code):
+    messages = {
+        200: "✅ 200 OK - 정상 처리됨",
+        202: "🕒 202 Accepted - 접수만 됨",
+        400: "❌ 400 Bad Request - 잘못된 요청",
+        401: "🔐 401 Unauthorized - 인증 필요",
+        403: "🚫 403 Forbidden - 접근 금지",
+        404: "❓ 404 Not Found - 없음",
+        418: "☕ 418 I'm a teapot - 서버 삐짐",
+        500: "💥 500 Internal Server Error - 서버 터짐",
+        503: "🛠️ 503 Service Unavailable - 점검 중"
+    }
+
+    msg = messages.get(code, "🤔 알 수 없는 상태코드 실험")
+    return msg, code
 
 
