@@ -6,6 +6,44 @@ app.secret_key = "mini-x-secret"
 
 DATA_FILE = "posts.json"
 
+
+import re
+
+bad_words = [
+    "씨발", "시발", "ㅅㅂ", "ㅆㅂ", "시바", "씨바",
+    "병신", "ㅂㅅ",
+    "미친", "ㅈㄴ", "존나",
+    "개새끼", "개세끼", "ㄱㅅㄲ",
+    "좆", "ㅈㄹ", "지랄",
+    "tlqkf", "ㅌㄹㅋㅍ"
+]
+
+def has_bad_word(text):
+    cleaned = text.lower()
+    cleaned = re.sub(r'[^가-힣ㄱ-ㅎㅏ-ㅣa-z0-9]', '', cleaned)
+
+    chosung_map = {
+        "ㅅㅂ": "시발",
+        "ㅆㅂ": "씨발",
+        "ㅂㅅ": "병신",
+        "ㄱㅅㄲ": "개새끼",
+        "ㅈㄴ": "존나",
+        "ㅈㄹ": "지랄",
+        "ㅌㄹㅋㅍ": "틀딱"
+    }
+
+    for c in chosung_map:
+        if c in cleaned:
+            return True
+
+    for word in bad_words:
+        if word in cleaned:
+            return True
+
+    return False
+
+
+
 def load_posts():
     if os.path.exists(DATA_FILE):
         with open(DATA_FILE, "r", encoding="utf-8") as f:
