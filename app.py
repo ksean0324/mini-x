@@ -25,6 +25,16 @@ def home():
 
     if request.method == "POST":
         text = request.form["text"]
+
+        # 🔥 욕설 검사
+        if has_bad_word(text):
+            return """
+            <script>
+            alert("욕설은 사용할 수 없습니다.");
+            history.back();
+            </script>
+            """
+
         if text.strip():
             posts.insert(0, {
                 "id": str(time.time()),
@@ -104,25 +114,6 @@ input {width:100%;padding:10px;border-radius:20px;border:none;margin-bottom:6px}
     return html
 
 
-@app.route("/delete/<pid>", methods=["POST"])
-def delete(pid):
-    global posts
-    posts = [p for p in posts if p["id"] != pid]
-    save_posts(posts)
-    return redirect("/")
-
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    if request.method == "POST":
-        session["user"] = request.form["name"]
-        return redirect("/")
-    return '''
-    <h2>Mini X 로그인</h2>
-    <form method="post">
-        <input name="name" placeholder="닉네임" required>
-        <button>입장</button>
-    </form>
-    '''
 
 @app.route("/logout")
 def logout():
