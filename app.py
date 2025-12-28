@@ -1,5 +1,9 @@
-from flask import Flask, request, redirect, session
-import json, os, time
+from flask import Flask, request, redirect, session, url_for, send_from_directory
+import os
+import time
+import json
+import re
+import werkzeug.utils  # 파일 업로드 안전 처리용
 
 app = Flask(__name__)
 app.secret_key = "mini-x-secret"
@@ -62,7 +66,8 @@ def home():
         return redirect("/login")
 
     if request.method == "POST":
-        text = request.form["text"]
+        text = request.form.get("text", "")
+        file = request.files.get("file")  # 업로드 파일
 
         # 🔥 욕설 검사
         if has_bad_word(text):
@@ -73,11 +78,19 @@ def home():
             </script>
             """
 
-        if text.strip():
+        filename = ""
+        if file and file.filename:
+            filename = f"{int(time.time())}_{werkzeug.utils.secure_filename(file.filename)}"
+            file_path = os.path.join("static", "uploads", filename)
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            file.save(file_path)
+
+        if text.strip() or filename:
             posts.insert(0, {
                 "id": str(time.time()),
                 "user": session["user"],
                 "text": text,
+                "image": filename,  # 이미지 파일명 저장
                 "likes": 0,
                 "comments": []
             })
@@ -90,10 +103,6 @@ def home():
 <head>
 <meta charset="UTF-8">
 <title>Mini X - 초간단 SNS</title>
-<meta name="description" content="닉네임만 입력하면 바로 사용하는 초간단 SNS Mini X">
-<meta name="keywords" content="Mini X, SNS, 트위터, 미니 트위터, Flask SNS">
-<meta name="robots" content="index, follow">
-<meta name="naver-site-verification" content="835543805cb974328c819829bf7b663b198375d3" />
 <style>
 body {font-family: Arial;background:#000;color:#fff;margin:0}
 .header {padding:15px;font-size:22px;font-weight:bold;border-bottom:1px solid #333}
@@ -106,25 +115,32 @@ button {background:#1d9bf0;color:white;border:none;padding:5px 10px;border-radiu
 .comment {background:none;color:#aaa}
 input {width:100%;padding:10px;border-radius:20px;border:none;margin-bottom:6px}
 .comment-box {margin-left:15px;margin-top:5px;color:#ccc}
+img {max-width:100%;margin-top:5px;border-radius:10px}
 </style>
 </head>
 <body>
 <div class="header">Mini X</div>
 <div class="container">
-    <a href="/grok" style="color:white;display:block;padding:8px 0;">🤖 Grok</a>
+<a href="/grok" style="color:white;display:block;padding:8px 0;">🤖 Grok</a>
 
-<form method="post">
-<input name="text" maxlength="280" placeholder="무슨 일이 일어나고 있나요?" required>
+<form method="post" enctype="multipart/form-data">
+<input name="text" maxlength="280" placeholder="무슨 일이 일어나고 있나요?">
+<input type="file" name="file" accept="image/*">
 <button>게시</button>
 </form>
 <hr>
 """
+
     for p in posts:
         html += f"""
 <div class="post">
 <div class="user">{p['user']}</div>
 <div>{p['text']}</div>
+"""
+        if p.get("image"):
+            html += f'<img src="/static/uploads/{p["image"]}">'
 
+        html += f"""
 <form action="/like/{p['id']}" method="post" style="display:inline">
 <button class="like">❤️ {p['likes']}</button>
 </form>
@@ -134,12 +150,14 @@ input {width:100%;padding:10px;border-radius:20px;border:none;margin-bottom:6px}
 <button class="comment">💬</button>
 </form>
 """
+
         if p["user"] == session["user"]:
             html += f"""
 <form action="/delete/{p['id']}" method="post" style="display:inline">
 <button class="delete">🗑️</button>
 </form>
 """
+
         for c in p["comments"]:
             html += f"""
 <div class="comment-box">
