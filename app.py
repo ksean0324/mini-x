@@ -151,6 +151,18 @@ input {width:100%;padding:10px;border-radius:20px;border:none;margin-bottom:6px}
     html += "</div></body></html>"
     return html
 
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        session["user"] = request.form["name"]
+        return redirect("/")
+    return """
+    <h2>Mini X 로그인</h2>
+    <form method="post">
+        <input name="name" placeholder="닉네임" required>
+        <button>입장</button>
+    </form>
+    """
 
 
 @app.route("/logout")
