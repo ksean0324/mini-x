@@ -253,6 +253,23 @@ def sitemap():
     xml += '</urlset>'
     return xml, 200, {"Content-Type": "application/xml"}
 
+@app.route("/delete/<pid>", methods=["POST"])
+def delete_post(pid):
+    global posts
+    for i, p in enumerate(posts):
+        if p["id"] == pid and p["user"] == session.get("user"):
+            # 이미지 파일 있으면 삭제
+            if p.get("image"):
+                try:
+                    os.remove(os.path.join("static", "uploads", p["image"]))
+                except FileNotFoundError:
+                    pass
+            # 게시물 삭제
+            posts.pop(i)
+            save_posts(posts)
+            break
+    return redirect("/")
+
 # ---- 알림 기능 ----
 notifications = {}  # { "username": ["알림1", "알림2", ...] }
 
