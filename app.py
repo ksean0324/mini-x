@@ -3,6 +3,10 @@ import os
 import time
 import json
 import re
+import ast
+import html
+import operator
+from datetime import datetime
 import werkzeug.utils  # 파일 업로드 안전 처리용
 
 app = Flask(__name__)
@@ -188,48 +192,106 @@ def logout():
     session.pop("user", None)
     return redirect("/login")
 
+CALC_OPERATORS = {
+    ast.Add: operator.add,
+    ast.Sub: operator.sub,
+    ast.Mult: operator.mul,
+    ast.Div: operator.truediv,
+    ast.Mod: operator.mod,
+    ast.Pow: operator.pow,
+    ast.USub: operator.neg,
+    ast.UAdd: operator.pos,
+}
+
+
+def safe_calculate(expression):
+    """숫자와 기본 연산자만 허용하는 안전한 계산기."""
+    if len(expression) > 80:
+        raise ValueError("계산식이 너무 길어요")
+
+    def evaluate(node):
+        if isinstance(node, ast.Expression):
+            return evaluate(node.body)
+        if isinstance(node, ast.Constant) and type(node.value) in (int, float):
+            return node.value
+        if isinstance(node, ast.BinOp) and type(node.op) in CALC_OPERATORS:
+            left, right = evaluate(node.left), evaluate(node.right)
+            if isinstance(node.op, ast.Pow) and abs(right) > 10:
+                raise ValueError("지수가 너무 커요")
+            result = CALC_OPERATORS[type(node.op)](left, right)
+            if abs(result) > 1_000_000_000_000:
+                raise ValueError("결과가 너무 커요")
+            return result
+        if isinstance(node, ast.UnaryOp) and type(node.op) in CALC_OPERATORS:
+            return CALC_OPERATORS[type(node.op)](evaluate(node.operand))
+        raise ValueError("지원하지 않는 계산식이에요")
+
+    return evaluate(ast.parse(expression, mode="eval"))
+
+
+def grok_answer(question):
+    q = question.strip()
+    q_lower = q.lower()
+    now = datetime.now()
+
+    # '계산해줘 12*(3+4)'처럼 말해도 계산식을 찾아낸다.
+    expression = re.sub(r"(계산해줘|계산해|계산|얼마야|은|는|이|가|\?|=)", "", q_lower).strip()
+    if expression and re.fullmatch(r"[\d\s.()+\-*/%]+", expression):
+        try:
+            result = safe_calculate(expression)
+            if isinstance(result, float) and result.is_integer():
+                result = int(result)
+            return f"계산 결과는 {result}입니다."
+        except ZeroDivisionError:
+            return "0으로 나눌 수는 없어요. 다른 계산식을 입력해 주세요."
+        except (ValueError, SyntaxError):
+            return "계산식을 이해하지 못했어요. 예: (12 + 3) * 4"
+
+    if any(word in q_lower for word in ("안녕", "반가워", "hello", "hi")):
+        user = session.get("user", "친구")
+        return f"안녕하세요, {user}님! 질문이나 계산, Mini X 사용법을 물어보세요."
+    if "몇 시" in q_lower or "몇시" in q_lower or "현재 시간" in q_lower:
+        return f"지금은 {now.strftime('%Y년 %m월 %d일 %H시 %M분')}입니다."
+    if any(word in q_lower for word in ("오늘 날짜", "무슨 요일", "며칠")):
+        weekdays = "월화수목금토일"
+        return f"오늘은 {now.strftime('%Y년 %m월 %d일')} {weekdays[now.weekday()]}요일입니다."
+    if "날씨" in q_lower:
+        return "실시간 날씨 정보에는 아직 연결되어 있지 않아요. 지역을 알려줘도 지금은 정확한 날씨를 확인할 수 없습니다."
+    if "누구" in q_lower and ("너" in q_lower or "grok" in q_lower):
+        return "저는 Mini X 안에서 계산과 간단한 질문에 답하는 Grok 도우미예요."
+    if any(word in q_lower for word in ("사용법", "뭘 할 수", "기능", "도움말")):
+        return "계산, 날짜와 시간 확인, Mini X 사용법 안내를 할 수 있어요. 홈에서는 글과 사진을 올리고 좋아요와 댓글도 남길 수 있습니다."
+    if "게시" in q_lower or "글 올" in q_lower:
+        return "홈 화면 입력칸에 내용을 쓰고 ‘게시’를 누르세요. 사진도 함께 선택할 수 있어요."
+    if "댓글" in q_lower:
+        return "게시물 아래 댓글 입력칸에 내용을 작성한 뒤 말풍선 버튼을 누르면 됩니다."
+    if "좋아요" in q_lower:
+        return "게시물 아래 하트 버튼을 누르면 좋아요가 추가됩니다."
+    if any(word in q_lower for word in ("고마워", "감사")):
+        return "천만에요! 또 궁금한 게 있으면 물어보세요."
+
+    # 키워드를 바탕으로 완전히 무관한 고정 답변 대신 다음 질문을 안내한다.
+    keywords = [word for word in re.findall(r"[가-힣a-zA-Z0-9]+", q) if len(word) > 1]
+    topic = keywords[0] if keywords else "그 내용"
+    return f"‘{topic}’에 관한 질문은 아직 정확히 답하기 어려워요. 계산식, 날짜·시간 또는 Mini X 사용법처럼 조금 더 구체적으로 물어봐 주세요."
+
+
 @app.route("/grok", methods=["GET", "POST"])
 def grok():
     answer = ""
+    question = ""
     if request.method == "POST":
-        q = request.form["q"]
-        q_lower = q.lower()
-
-        # 사칙연산 처리
-        import re
-        calc_match = re.match(r"^\s*([-+]?\d*\.?\d+)\s*([\+\-\*/])\s*([-+]?\d*\.?\d+)\s*$", q)
-        if calc_match:
-            num1 = float(calc_match.group(1))
-            op = calc_match.group(2)
-            num2 = float(calc_match.group(3))
-            try:
-                if op == '+':
-                    result = num1 + num2
-                elif op == '-':
-                    result = num1 - num2
-                elif op == '*':
-                    result = num1 * num2
-                elif op == '/':
-                    result = num1 / num2
-                answer = f"🤖 Grok: 계산 결과는 {result} 입니다."
-            except Exception as e:
-                answer = f"🤖 Grok: 계산 중 오류가 발생했어요 ({e})"
-        elif "날씨" in q_lower:
-            answer = "🤖 Grok: 오늘 날씨는 맑음/흐림/비 올 수 있으니 우산을 챙겨봐!"
-        elif "시간" in q_lower or "몇시" in q_lower:
-            answer = f"🤖 Grok: 지금 시간은 {time.strftime('%H:%M:%S')} 이에요."
-        elif "안녕" in q_lower or "hi" in q_lower:
-            answer = "🤖 Grok: 안녕하세요! 만나서 반가워요 😎"
-        else:
-            answer = f"🤖 Grok: '{q}'에 대해 생각해보면… 흠, 꽤 흥미로운 질문이네요!"
+        question = request.form.get("q", "")[:500]
+        answer = grok_answer(question)
 
     return f"""
+    <meta charset="UTF-8">
     <h2>🤖 Grok</h2>
     <form method="post">
-        <input name="q" placeholder="Grok에게 물어보세요" required>
+        <input name="q" maxlength="500" value="{html.escape(question)}" placeholder="계산, 날짜, Mini X 사용법을 물어보세요" required>
         <button>질문</button>
     </form>
-    <p>{answer}</p>
+    <p>{html.escape(answer)}</p>
     <a href="/">← 홈</a>
     """
 
